@@ -1,6 +1,9 @@
+# Ignore all files in these directories
 DATA/
 output/
 Archive/
+
+# Ignore these file types
 *.xlsx
 *.pdf
 *.html
@@ -17,6 +20,29 @@ Archive/
 *.gff
 *.out
 *.err
+*.dexseq_counts
+*.dexeq_counts
+*.dexseq.gff
+*.gtf
+*.gff3
+*.tab
+*.bed
+*.bed.gz
+*.fasta
+Genome
+SA
+SAindex
+*.gz
+Snord116
+Ribisome_58s
+*.fa
+*.json
 
+# Ignore temporary and other directories
 temp*/
+other_files
 
+# Track specific files from DATA directory
+!DATA/
+!DATA/prepare_annotation.sh
+!DATA/allign.sh
