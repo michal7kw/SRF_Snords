@@ -48,3 +48,11 @@ other_files
 !DATA/allign.sh
 DATA/gencode.v31.basic.annotation.dexseq.gff.clean
 DATA/gencode.v31.basic.annotation.dexseq.gff.fixed
+
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_HTT_detailed.csv
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_MED14_detailed.csv
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_NSD2_detailed.csv
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_PER3_detailed.csv
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_POLE_detailed.csv
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_SETD5_detailed.csv
+!/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_genes_summary.csv
