@@ -46,3 +46,5 @@ other_files
 !DATA/
 !DATA/prepare_annotation.sh
 !DATA/allign.sh
+DATA/gencode.v31.basic.annotation.dexseq.gff.clean
+DATA/gencode.v31.basic.annotation.dexseq.gff.fixed
