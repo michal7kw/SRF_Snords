@@ -13,4 +13,4 @@
 source /opt/common/tools/ric.cosr/miniconda3/bin/activate
 conda activate jupyter_nb
 
-python /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/cross_with_RNA_parallel_ND1.py
+python /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/Individual_comparisons/cross_with_RNA_parallel_EDO_vs_ND1.py
