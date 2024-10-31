@@ -11,8 +11,8 @@ from rpy2.robjects.conversion import localconverter
 
 # In your Python script, before running the analysis, add:
 # import os
-# os.environ["OPENBLAS_NUM_THREADS"] = "16"  # or another reasonable number
-# os.environ["OMP_NUM_THREADS"] = "16"
+os.environ["OPENBLAS_NUM_THREADS"] = "16"
+os.environ["OMP_NUM_THREADS"] = "16"
 
 # Enable automatic conversion between pandas and R dataframes
 pandas2ri.activate()
@@ -366,7 +366,7 @@ print("\nCount Data Shape:", counts_df.shape)
 
 # Run DEXSeq analysis
 # dexseq_results = run_dexseq_analysis(counts_df, sample_table, gff_file, data_dir, n_cores=128)
-dexseq_results = run_dexseq_analysis(counts_df, sample_table, gff_file, data_dir, n_cores=32)
+dexseq_results = run_dexseq_analysis(counts_df, sample_table, gff_file, data_dir, n_cores=16)
 
 # Convert results to pandas DataFrame
 results_df = convert_dexseq_results_to_df(dexseq_results)

@@ -49,6 +49,8 @@ other_files
 DATA/gencode.v31.basic.annotation.dexseq.gff.clean
 DATA/gencode.v31.basic.annotation.dexseq.gff.fixed
 
+qc_plots/
+
 !/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_HTT_detailed.csv
 !/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_MED14_detailed.csv
 !/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_NSD2_detailed.csv
