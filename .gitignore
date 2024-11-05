@@ -58,3 +58,4 @@ qc_plots/
 !/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_POLE_detailed.csv
 !/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_gene_SETD5_detailed.csv
 !/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output/snord116_target_genes_summary.csv
+enriched_overlaps_with_als.pkl
