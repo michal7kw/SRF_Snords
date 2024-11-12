@@ -334,10 +334,11 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
 
 # %%
 # Define paths
-data_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/Create_counts/output"
+data_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/Create_counts/output_v38"
 working_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords"
-gff_file = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA/gencode.v31.basic.annotation.dexseq.gff"
-output_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output"
+# gff_file = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA/gencode.v31.basic.annotation.dexseq.gff"
+gff_file = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA/v38/gencode.v38.annotation.dexseq.gff"
+output_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output_v38"
 
 # Define control groups and treatment group
 control_groups = ['EDO', 'ND1']

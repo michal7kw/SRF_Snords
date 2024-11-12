@@ -2,6 +2,7 @@
 DATA/
 output/
 Archive/
+__pycache__/
 
 # Ignore these file types
 *.xlsx
@@ -37,6 +38,11 @@ Snord116
 Ribisome_58s
 *.fa
 *.json
+*.dexseq_counts
+*.clean
+*.gff
+*.gtf
+*.gff.fixed
 
 # Ignore temporary and other directories
 temp*/

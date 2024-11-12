@@ -17,5 +17,5 @@ export OMP_NUM_THREADS=16
 source /opt/common/tools/ric.cosr/miniconda3/bin/activate
 conda activate jupyter_nb   
 
-python /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/cross_with_RNA_parallel_PW1_vs_combined_controls.py
+python /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/4_cross_with_RNA_parallel_PW1_vs_combined_controls.py
 

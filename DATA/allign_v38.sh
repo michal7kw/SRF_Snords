@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=alignment
 #SBATCH --account=kubacki.michal
-#SBATCH --mem=64GB
+#SBATCH --mem=128GB
 #SBATCH --time=INFINITE
 #SBATCH --exclusive
 #SBATCH --ntasks=32
@@ -14,11 +14,11 @@ source /opt/common/tools/ric.cosr/miniconda3/bin/activate
 conda activate jupyter_nb
 
 # Set paths
-FASTQ_DIR="/beegfs/scratch/ric.broccoli/ric.broccoli/PW_RNA_seq_deep/fastq/PW_RNA_seq_deep"  # Updated path
-OUTPUT_DIR="/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA"
+FASTQ_DIR="/beegfs/scratch/ric.broccoli/ric.broccoli/PW_RNA_seq_deep/fastq/PW_RNA_seq_deep"
+OUTPUT_DIR="/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA/v38"
 STAR_INDEX="$OUTPUT_DIR/STAR_index"
 GENOME_FASTA="$OUTPUT_DIR/hg38.fa"
-GTF_FILE="$OUTPUT_DIR/gencode.v38.basic.annotation.gtf"  # Updated to match actual filename
+GTF_FILE="$OUTPUT_DIR/gencode.v38.annotation.gtf"
 
 # First, remove the existing STAR index since it seems to be corrupted
 rm -rf "$STAR_INDEX"
