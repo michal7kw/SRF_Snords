@@ -9,135 +9,18 @@ import mygene
 import os
 pd.set_option('display.max_columns', None)
 
-
 # Set the working directory
 working_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords"
 os.chdir(working_dir)
 print(f"Current working directory: {os.getcwd()}")
 
-# # Local functions
+from functions import check_dexseq_results
 
-def check_dexseq_results(results_file: str, output_dir: str = "qc_plots"):
-    """
-    Perform quality checks on DEXSeq results file.
-    
-    Args:
-        results_file: Path to DEXSeq results CSV file
-        output_dir: Directory to save QC plots
-    """
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Load results
-    print("Loading results file...")
-    df = pd.read_csv(results_file)
-    
-    # Basic statistics
-    print("\n=== Basic Statistics ===")
-    print(f"Total number of tests: {len(df)}")
-    print(f"Number of NA p-values: {df['pvalue'].isna().sum()}")
-    print(f"Number of NA adjusted p-values: {df['padj'].isna().sum()}")
-    print(f"Number of significant results (padj < 0.05): {(df['padj'] < 0.05).sum()}")
-    print(f"Number of significant results (padj < 0.1): {(df['padj'] < 0.1).sum()}")
-    
-    # Check for extreme fold changes
-    fc_stats = df['log2fold_treated_control'].describe()
-    print("\n=== Fold Change Statistics ===")
-    print(fc_stats)
-    
-    # Identify potential problematic results
-    print("\n=== Potential Issues ===")
-    problematic = df[
-        (df['log2fold_treated_control'].abs() > 5) |  # Extreme fold changes
-        (df['dispersion'] > 10) |                     # High dispersion
-        (df['pvalue'].isna()) |                      # Missing p-values
-        (df['stat'].abs() > 10000)                   # Extreme test statistics
-    ]
-    print(f"Number of potentially problematic results: {len(problematic)}")
-    if len(problematic) > 0:
-        print("\nSample of problematic results:")
-        print(problematic[['groupID', 'featureID', 'log2fold_treated_control', 'dispersion', 'pvalue', 'stat']].head())
-    
-    # Create plots
-    plt.style.use('default')
-    
-    # 1. P-value distribution
-    plt.figure(figsize=(10, 6))
-    plt.hist(df['pvalue'].dropna(), bins=50, edgecolor='black')
-    plt.title('P-value Distribution')
-    plt.xlabel('P-value')
-    plt.ylabel('Frequency')
-    plt.savefig(f"{output_dir}/pvalue_distribution.png")
-    plt.close()
-    
-    # 2. Volcano plot
-    plt.figure(figsize=(10, 6))
-    plt.scatter(df['log2fold_treated_control'], 
-               -np.log10(df['pvalue']),
-               alpha=0.5)
-    plt.title('Volcano Plot')
-    plt.xlabel('Log2 Fold Change')
-    plt.ylabel('-log10(p-value)')
-    plt.savefig(f"{output_dir}/volcano_plot.png")
-    plt.close()
-    
-    # 3. MA plot
-    plt.figure(figsize=(10, 6))
-    plt.scatter(df['exonBaseMean'],
-               df['log2fold_treated_control'],
-               alpha=0.5)
-    plt.xscale('log')
-    plt.title('MA Plot')
-    plt.xlabel('Mean Expression')
-    plt.ylabel('Log2 Fold Change')
-    plt.savefig(f"{output_dir}/ma_plot.png")
-    plt.close()
-    
-    # 4. Dispersion plot
-    plt.figure(figsize=(10, 6))
-    plt.scatter(df['exonBaseMean'],
-               df['dispersion'],
-               alpha=0.5)
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.title('Dispersion Plot')
-    plt.xlabel('Mean Expression')
-    plt.ylabel('Dispersion')
-    plt.savefig(f"{output_dir}/dispersion_plot.png")
-    plt.close()
-    
-    # Check for the problematic gene/exon mentioned in the error
-    problem_genes = ['ENSG00000285404.1', 'ENSG00000100150.19', 
-                    'ENSG00000128245.15', 'ENSG00000252909.1']
-    
-    print("\n=== Checking Problematic Genes ===")
-    for gene in problem_genes:
-        gene_results = df[df['groupID'].str.contains(gene, na=False)]
-        if len(gene_results) > 0:
-            print(f"\nResults for {gene}:")
-            print(gene_results[['featureID', 'log2fold_treated_control', 
-                              'pvalue', 'padj', 'dispersion']].head())
-    
-    # Save problematic results to file
-    if len(problematic) > 0:
-        problematic.to_csv(f"{output_dir}/problematic_results.csv")
-        print(f"\nProblematic results saved to {output_dir}/problematic_results.csv")
-    
-    # Return summary statistics
-    return {
-        'total_tests': len(df),
-        'significant_005': (df['padj'] < 0.05).sum(),
-        'significant_01': (df['padj'] < 0.1).sum(),
-        'na_pvalues': df['pvalue'].isna().sum(),
-        'problematic_count': len(problematic),
-        'median_dispersion': df['dispersion'].median(),
-        'median_fold_change': df['log2fold_treated_control'].median()
-    }
 
 # # Examind the data
 
 # Example usage
-results_file = "output/dexseq_results_PW1_vs_combined_controls.csv"
+results_file = "output_v38/dexseq_results_PW1_vs_combined_controls.csv"
 df = pd.read_csv(results_file)
 
 df.head()
@@ -169,11 +52,11 @@ df = df[~df['groupID'].str.contains('\+')]
 
 df.head()
 
-# # Select problematic genes
+# # Check problematic genes
 
 # List of problematic genes from the error message
-problematic_genes = ['ENSG00000285404.1', 'ENSG00000100150.19', 
-                    'ENSG00000128245.15', 'ENSG00000252909.1']
+# problematic_genes = ['ENSG00000285404.1', 'ENSG00000100150.19', 
+#                     'ENSG00000128245.15', 'ENSG00000252909.1']
 
 # Create masks for each condition
 extreme_fc_mask = (df['log2fold_treated_control'].abs() > 5)
@@ -184,14 +67,14 @@ missing_vals_mask = (
     df['padj'].isna()
 )
 extreme_stat_mask = (df['stat'].abs() > 10000)
-problematic_genes_mask = df['groupID'].str.contains('|'.join(problematic_genes), regex=True)
+# problematic_genes_mask = df['groupID'].str.contains('|'.join(problematic_genes), regex=True)
 
 # Print counts for each condition
 print(f"Records with extreme fold changes (>5): {extreme_fc_mask.sum()}")
 print(f"Records with high dispersion (>10): {high_disp_mask.sum()}")
 print(f"Records with missing values: {missing_vals_mask.sum()}")
 print(f"Records with extreme test statistics (>10000): {extreme_stat_mask.sum()}")
-print(f"Records from problematic genes: {problematic_genes_mask.sum()}")
+# print(f"Records from problematic genes: {problematic_genes_mask.sum()}")
 
 df.columns
 
@@ -215,7 +98,12 @@ mg = mygene.MyGeneInfo()
 stat_sel_no_version = [id.split('.')[0] for id in stat_sel]
 
 # Query the gene symbols
-results = mg.querymany(stat_sel_no_version, scopes='ensembl.gene', fields='symbol', species='human')
+# results = mg.querymany(stat_sel_no_version, scopes='ensembl.gene', fields='symbol', species='human')
+results = mg.querymany(stat_sel_no_version, 
+                      scopes='ensembl.gene', 
+                      fields='symbol', 
+                      species='human',
+                      assembly='GRCh38')
 
 # Create a dictionary mapping ENSEMBL IDs to symbols
 gene_map = {res['query']: res.get('symbol', 'Not found') for res in results}
@@ -234,12 +122,7 @@ print("\nSample of records with extreme test statistics:")
 extreme_stat_records.head()
 
 
-# - log2fold change is tiny: 0.042537 (about 3% increase)
-# - Very low dispersion: 0.001905
-# - High stat value: 14819.648036
-# - This means: The change is small, but it's happening very consistently across all replicates
-
-# ## Examine extreme fold changes
+# # Examine extreme fold changes
 
 # Print genes with extreme fold changes
 # print(list(df[extreme_fc_mask]['groupID'].unique()))
@@ -261,7 +144,12 @@ mg = mygene.MyGeneInfo()
 fc_sel_no_version = [id.split('.')[0] for id in fc_sel]
 
 # Query the gene symbols
-results = mg.querymany(fc_sel_no_version, scopes='ensembl.gene', fields='symbol', species='human')
+# results = mg.querymany(fc_sel_no_version, scopes='ensembl.gene', fields='symbol', species='human')
+results = mg.querymany(fc_sel_no_version, 
+                      scopes='ensembl.gene', 
+                      fields='symbol', 
+                      species='human',
+                      assembly='GRCh38')
 
 # Create a dictionary mapping ENSEMBL IDs to symbols
 gene_map = {res['query']: res.get('symbol', 'Not found') for res in results}

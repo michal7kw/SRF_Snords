@@ -25,11 +25,31 @@ def generate_antisense(sequence):
     return str(Seq.Seq(sequence).reverse_complement())
 
 # Function to fetch gene sequence from NCBI
+# def fetch_gene_sequence(gene_name, email):
+#     """Fetch the gene sequence from NCBI."""
+#     Entrez.email = email
+#     # Search for the gene in the nucleotide database
+#     handle = Entrez.esearch(db="nucleotide", term=f"{gene_name}[Gene Name] AND human[Organism]")
+#     record = Entrez.read(handle)
+#     if record["IdList"]:
+#         gene_id = record["IdList"][0]
+#         # Fetch the gene record
+#         handle = Entrez.efetch(db="nucleotide", id=gene_id, rettype="gb", retmode="text")
+#         try:
+#             gene_record = SeqIO.read(handle, "genbank")
+#             return str(gene_record.seq)
+#         except ValueError as e:
+#             # If there's an error reading the sequence, return None
+#             return None
+#         finally:
+#             handle.close()
+#     return None
 def fetch_gene_sequence(gene_name, email):
-    """Fetch the gene sequence from NCBI."""
+    """Fetch the gene sequence from NCBI using GRCh38 assembly."""
     Entrez.email = email
-    # Search for the gene in the nucleotide database
-    handle = Entrez.esearch(db="nucleotide", term=f"{gene_name}[Gene Name] AND human[Organism]")
+    # Search for the gene in the nucleotide database, specifically for GRCh38
+    search_term = f"{gene_name}[Gene Name] AND human[Organism] AND GRCh38[Assembly]"
+    handle = Entrez.esearch(db="nucleotide", term=search_term)
     record = Entrez.read(handle)
     if record["IdList"]:
         gene_id = record["IdList"][0]

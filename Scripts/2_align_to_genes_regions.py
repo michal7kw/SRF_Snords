@@ -50,32 +50,54 @@ def generate_antisense(sequence):
     """Generate the antisense sequence."""
     return str(Seq(sequence).reverse_complement())
 
-def download_ensembl_mapping():
-    # Ensembl BioMart URL
-    url = "http://www.ensembl.org/biomart/martservice"
+# def download_ensembl_mapping():
+#     # Ensembl BioMart URL
+#     url = "http://www.ensembl.org/biomart/martservice"
 
-    # Query parameters
-    query = '''<?xml version="1.0" encoding="UTF-8"?>
+#     # Query parameters
+#     query = '''<?xml version="1.0" encoding="UTF-8"?>
+#     <!DOCTYPE Query>
+#     <Query virtualSchemaName="default" formatter="TSV" header="0" uniqueRows="0" count="" datasetConfigVersion="0.6">
+#         <Dataset name="hsapiens_gene_ensembl" interface="default">
+#             <Attribute name="ensembl_transcript_id_version" />
+#             <Attribute name="external_gene_name" />
+#         </Dataset>
+#     </Query>
+#     '''
+
+#     # Send POST request
+#     response = requests.post(url, data={'query': query})
+
+#     # Check if the request was successful
+#     if response.status_code == 200:
+#         # Convert the response content to a pandas DataFrame
+#         df = pd.read_csv(StringIO(response.text), sep='\t', header=None, names=['transcript_id', 'gene_symbol'])
+#         return df
+#     else:
+#         print(f"Error downloading data: Status code {response.status_code}")
+#         return None
+
+def download_ensembl_mapping():
+    """Download Ensembl ID to gene symbol mapping."""
+    url = "http://www.ensembl.org/biomart/martservice"
+    
+    query = """<?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE Query>
     <Query virtualSchemaName="default" formatter="TSV" header="0" uniqueRows="0" count="" datasetConfigVersion="0.6">
-        <Dataset name="hsapiens_gene_ensembl" interface="default">
+        <Dataset name="hsapiens_gene_ensembl" version="GRCh38.p13">
             <Attribute name="ensembl_transcript_id_version" />
             <Attribute name="external_gene_name" />
         </Dataset>
-    </Query>
-    '''
-
-    # Send POST request
-    response = requests.post(url, data={'query': query})
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Convert the response content to a pandas DataFrame
-        df = pd.read_csv(StringIO(response.text), sep='\t', header=None, names=['transcript_id', 'gene_symbol'])
-        return df
-    else:
-        print(f"Error downloading data: Status code {response.status_code}")
-        return None
+    </Query>"""
+    
+    try:
+        response = requests.get(url, params={'query': query})
+        if response.ok:
+            return pd.read_csv(StringIO(response.text), sep='\t', 
+                             names=['transcript_id', 'gene_symbol'])
+    except Exception as e:
+        print(f"Error downloading mapping: {str(e)}")
+    return None
 
 def create_mapping_dict(df):
     return dict(zip(df['transcript_id'], df['gene_symbol']))
