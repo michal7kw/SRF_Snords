@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=rna_seq_analysis3
 #SBATCH --account=kubacki.michal
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=24
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=32
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=128GB
-#SBATCH --time=24:00:00
+#SBATCH --mem=256GB
+#SBATCH --time=48:00:00
 #SBATCH --error="/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/logs/3_%x_%j.err"
 #SBATCH --output="/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/logs/3_%x_%j.out"
 
@@ -20,12 +20,12 @@ cd /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords
 source /beegfs/scratch/ric.broccoli/kubacki.michal/conda_envs/jupyter_nb/bin/activate
 
 # Set environment variables for optimal performance
-export OPENBLAS_NUM_THREADS=24
-export MKL_NUM_THREADS=24
-export OMP_NUM_THREADS=24
-export NUMEXPR_NUM_THREADS=24
-export VECLIB_MAXIMUM_THREADS=24
-export NUMBA_NUM_THREADS=24
+export OPENBLAS_NUM_THREADS=64
+export MKL_NUM_THREADS=64
+export OMP_NUM_THREADS=64
+export NUMEXPR_NUM_THREADS=64
+export VECLIB_MAXIMUM_THREADS=64
+export NUMBA_NUM_THREADS=64
 
 # Set R-specific environment variables
 export R_LIBS_USER="/beegfs/scratch/ric.broccoli/kubacki.michal/R/library"
@@ -53,8 +53,8 @@ import os
 import sys
 
 # Set environment variables
-os.environ['MKL_NUM_THREADS'] = '24'
-os.environ['OPENBLAS_NUM_THREADS'] = '24'
+os.environ['MKL_NUM_THREADS'] = '64'
+os.environ['OPENBLAS_NUM_THREADS'] = '64'
 
 # Add project directory to Python path
 sys.path.append('/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords')
@@ -66,8 +66,21 @@ main = module.main
 main()
 EOF
 
-# Run the analysis script with optimized settings
-time srun --cpu-bind=cores python -O run_analysis.py
+# Add memory monitoring
+monitor_memory() {
+    while true; do
+        free -h >> memory_usage.log
+        sleep 300  # Log every 5 minutes
+    done
+}
+monitor_memory &
+MONITOR_PID=$!
+
+# Run the analysis script with memory limits
+time python -O run_analysis.py
+
+# Kill memory monitor
+kill $MONITOR_PID
 
 # Cleanup
 rm run_analysis.py

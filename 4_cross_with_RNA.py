@@ -10,8 +10,8 @@ from rpy2.robjects.vectors import StrVector
 from rpy2.robjects.conversion import localconverter
 
 # Set environment variables for threading
-os.environ["OPENBLAS_NUM_THREADS"] = "16"
-os.environ["OMP_NUM_THREADS"] = "16"
+os.environ["OPENBLAS_NUM_THREADS"] = "64"
+os.environ["OMP_NUM_THREADS"] = "64"
 
 # Enable automatic conversion between pandas and R dataframes
 pandas2ri.activate()
@@ -133,7 +133,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                        gff_file: str,
                        data_dir: str,
                        min_count: int = 10,
-                       n_cores: int = 32) -> ro.vectors.ListVector:
+                       n_cores: int = 64) -> ro.vectors.ListVector:
     """Run DEXSeq differential exon usage analysis with parallel processing."""
     
     # Clean GFF file and prepare count files
@@ -187,6 +187,15 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
         ''')
         r_sample_table = ro.r['convert_to_factor'](r_sample_table)    
 
+    # Add memory management in R
+    ro.r('''
+        gc_and_clean <- function() {
+            gc()
+            rm(list=ls()[!ls() %in% c("dds", "BPPARAM")])
+            gc()
+        }
+    ''')
+    
     try:
         r_count_files = StrVector(count_files)
         
@@ -210,6 +219,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
             design=initial_design,
             flattenedfile=clean_gff
         )
+        ro.r['gc_and_clean']()
         
         # Filter low count exons
         print("\nFiltering low count exons...")
@@ -223,6 +233,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(dds_filtered)
             }
         ''')(dxd, min_count)
+        ro.r['gc_and_clean']()
         
         # Size factors estimation
         print("\nEstimating size factors...")
@@ -247,6 +258,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(dds)
             }
         ''')(dxd)
+        ro.r['gc_and_clean']()
         
         # Create nested design formula
         nested_design = Formula('~ condition + condition:ind.n + condition:exon')
@@ -265,6 +277,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(dds)
             }
         ''')(dxd, nested_design)
+        ro.r['gc_and_clean']()
         
         # Dispersion estimation
         print("\nEstimating dispersions...")
@@ -279,6 +292,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(dds)
             }
         ''')(dxd, bpparam)
+        ro.r['gc_and_clean']()
         
         # Test for differential exon usage
         print("\nTesting for differential exon usage...")
@@ -298,6 +312,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(dds)
             }
         ''')(dxd, reduced_design, nested_design, bpparam)
+        ro.r['gc_and_clean']()
         
         # Estimate fold changes
         print("\nEstimating exon fold changes...")
@@ -315,6 +330,7 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(dds)
             }
         ''')(dxd, "condition", bpparam)
+        ro.r['gc_and_clean']()
         
         # Extract results
         print("\nExtracting results...")
@@ -325,53 +341,58 @@ def run_dexseq_analysis(counts_df: pd.DataFrame,
                 return(res)
             }
         ''')(dxd)
+        ro.r['gc_and_clean']()
         
         return results
         
     except Exception as e:
         print(f"\nError during DEXSeq analysis: {str(e)}")
+        ro.r['gc_and_clean']()
         raise
 
-# %%
-# Define paths
-data_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/Create_counts/output_v38"
-working_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords"
-gff_file = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA/v38/gencode.v38.annotation.dexseq.gff"
-output_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output"
+def main():
+    # Define paths
+    data_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/Create_counts/output_v38"
+    working_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords"
+    gff_file = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/DATA/v38/gencode.v38.annotation.dexseq.gff"
+    output_dir = "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Snords/output"
 
-# Define control groups and treatment group
-control_groups = ['EDO', 'ND1']
-treatment_group = 'PW1'
+    # Define control groups and treatment group
+    control_groups = ['EDO', 'ND1']
+    treatment_group = 'PW1'
 
-os.chdir(working_dir)
+    os.chdir(working_dir)
 
-# Load and combine count data with combined controls
-counts_df, sample_table = load_and_combine_count_data(data_dir, control_groups, treatment_group)
+    # Load and combine count data with combined controls
+    counts_df, sample_table = load_and_combine_count_data(data_dir, control_groups, treatment_group)
 
-print("\nSample Table Summary:")
-print(sample_table)
-print("\nCount Data Shape:", counts_df.shape)
+    print("\nSample Table Summary:")
+    print(sample_table)
+    print("\nCount Data Shape:", counts_df.shape)
 
-# Run DEXSeq analysis
-dexseq_results = run_dexseq_analysis(counts_df, sample_table, gff_file, data_dir, n_cores=16)
+    # Run DEXSeq analysis
+    dexseq_results = run_dexseq_analysis(counts_df, sample_table, gff_file, data_dir, n_cores=64)
 
-# Convert results to pandas DataFrame
-results_df = convert_dexseq_results_to_df(dexseq_results)
+    # Convert results to pandas DataFrame
+    results_df = convert_dexseq_results_to_df(dexseq_results)
 
-# Ensure output directory exists
-os.makedirs(output_dir, exist_ok=True)
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
-# Save results
-output_file = os.path.join(output_dir, 'dexseq_results_PW1_vs_combined_controls.csv')
-results_df.to_csv(output_file)
+    # Save results
+    output_file = os.path.join(output_dir, 'dexseq_results_PW1_vs_combined_controls.csv')
+    results_df.to_csv(output_file)
 
-print("\nAnalysis Summary:")
-print(f"Total features tested: {len(results_df)}")
-if 'padj' in results_df.columns:
-    print(f"Significant features (padj < 0.1): {(results_df['padj'] < 0.1).sum()}")
-    print(f"Significant features (padj < 0.05): {(results_df['padj'] < 0.05).sum()}")
-else:
-    print("Note: No adjusted p-values found in results")
+    print("\nAnalysis Summary:")
+    print(f"Total features tested: {len(results_df)}")
+    if 'padj' in results_df.columns:
+        print(f"Significant features (padj < 0.1): {(results_df['padj'] < 0.1).sum()}")
+        print(f"Significant features (padj < 0.05): {(results_df['padj'] < 0.05).sum()}")
+    else:
+        print("Note: No adjusted p-values found in results")
 
-print("\nColumns in results:")
-print(results_df.columns.tolist())
+    print("\nColumns in results:")
+    print(results_df.columns.tolist())
+
+if __name__ == "__main__":
+    main()

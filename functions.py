@@ -3,6 +3,49 @@ import os
 import signal
 import time
 from typing import Any, Dict, List, Optional, Tuple
+import matplotlib.pyplot as plt
+import numpy as np
+import requests
+import json
+import requests
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+import numpy as np
+from numba import jit, prange
+import pandas as pd
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+import asyncio
+import aiohttp
+from typing import Dict, List, Tuple, Optional, Set
+import time
+from collections import defaultdict
+import sqlite3
+from functools import partial
+import hashlib
+import os
+import requests
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+from Bio import Entrez
+from Bio import SeqIO
+from Bio.Seq import Seq
+import requests
+import json
+from multiprocessing import Pool
+import pandas as pd
+from typing import List, Dict
+from intervaltree import IntervalTree
+import numpy as np
+from Bio import Entrez
+from Bio import SeqIO
+from Bio.Seq import Seq
+import requests
+import json
 
 # Third party imports
 import concurrent.futures
@@ -833,13 +876,6 @@ def process_chunk_optimized(chunk_data: tuple) -> list:
         return []
 
 ############################### Find Overlaps Alternative ##########################################################################################
-
-from multiprocessing import Pool
-import pandas as pd
-from typing import List, Dict
-from intervaltree import IntervalTree
-import numpy as np
-
 def process_gene_group(args) -> List[dict]:
     """
     Helper function to process a single gene group.
@@ -951,25 +987,6 @@ def find_overlaps3_parallel(dexseq_df: pd.DataFrame, peaks_tree: IntervalTree,
 # results = find_overlaps3_parallel(dexseq_df, peaks_tree, max_distance=2000, n_processes=4)
 
 ############################### analyze overlaps with als Alternative #########################################################################################
-import numpy as np
-from numba import jit, prange
-import pandas as pd
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-import asyncio
-import aiohttp
-from typing import Dict, List, Tuple, Optional, Set
-import time
-from collections import defaultdict
-import sqlite3
-from functools import partial
-import hashlib
-import os
-import requests
-import json
-import matplotlib.pyplot as plt
-import numpy as np
-
 class SequenceCache:
     def __init__(self, cache_file="sequence_cache.db"):
         self.cache_file = cache_file
@@ -1644,6 +1661,237 @@ def visualize_gene_structure_with_specific_exon(biological_exons, dexseq_parts, 
 
     return fig, ax, intersections, closest_exons
 
+def fetch_exon_coordinates(gene_id):
+    """Fetch exon coordinates from Ensembl REST API"""
+    base_url = "https://rest.ensembl.org"
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    ext = f"/lookup/id/{gene_id}?expand=1"
+    response = requests.get(base_url + ext, headers=headers)
+    
+    if response.status_code != 200:
+        return []
+    
+    data = response.json()
+    exon_coords = []
+    
+    # Collect unique exon coordinates from all transcripts
+    for transcript in data.get('Transcript', []):
+        for exon in transcript.get('Exon', []):
+            coords = (exon['start'], exon['end'])
+            if coords not in exon_coords:
+                exon_coords.append(coords)
+    
+    return sorted(exon_coords)
+
+def examine_gff_content(gff_file, gene_id, db):
+    """
+    Examine the content of the GFF file for a specific gene
+    """    
+    # First, let's look at all features in the database
+    print("\nSample of features in the database:")
+    for feature in db.all_features():
+        print(f"\nFeature type: {feature.featuretype}")
+        print(f"ID: {feature.id}")
+        print(f"Coordinates: {feature.seqid}:{feature.start}-{feature.end}")
+        print("Attributes:", dict(feature.attributes))
+        break  # Just show the first one as an example
+    
+    # Try to find our specific exon
+    print("\nTrying to find specific features...")
+    try:
+        # Try exact ID
+        feature = db[f"{gene_id}:E063"]
+        print("Found by exact ID!")
+    except:
+        print("Not found by exact ID")
+    
+    # Look at all features in the relevant chromosome region
+    print("\nFeatures in the relevant region:")
+    for feature in db.region(seqid='chr1', start=70147000, end=70149000):
+        print(f"\nFeature type: {feature.featuretype}")
+        print(f"ID: {feature.id}")
+        print(f"Coordinates: {feature.seqid}:{feature.start}-{feature.end}")
+        print("Attributes:", dict(feature.attributes))
+
+def peek_gff_file(gff_file, num_lines=10):
+    """
+    Show the first few lines of the GFF file
+    """
+    with open(gff_file, 'r') as f:
+        lines = []
+        for line in f:
+            if not line.startswith('#'):  # Skip comment lines
+                lines.append(line.strip())
+                if len(lines) >= num_lines:
+                    break
+    
+    print("Sample lines from GFF file:")
+    for line in lines:
+        print(line)
+
+def get_sequence_for_coordinates(chromosome, start, end):
+    """Get sequence from Ensembl REST API for given coordinates"""
+    server = "https://rest.ensembl.org"
+    ext = f"/sequence/region/human/{chromosome}:{start}:{end}:1"
+    
+    r = requests.get(server + ext, headers={"Content-Type": "application/json"})
+    
+    if r.status_code != 200:
+        return None
+        
+    return r.json()['seq']
+
+def get_gene_info(chromosome, start, end):
+    """Get gene information from Ensembl REST API for given coordinates"""
+    server = "https://rest.ensembl.org"
+    ext = f"/overlap/region/human/{chromosome}:{start}:{end}?feature=gene"
+    
+    r = requests.get(server + ext, headers={"Content-Type": "application/json"})
+    
+    if r.status_code != 200:
+        return None
+        
+    return r.json()
+
+def search_ensembl_region(sequence, chromosome, start, end, margin=5000):
+    """
+    Search for sequence matches in Ensembl transcripts within specified region
+    
+    Args:
+        sequence (str): Query sequence
+        chromosome (str): Chromosome number
+        start (int): Start position
+        end (int): End position
+        margin (int): Additional base pairs to search on each side
+    """
+    # Ensembl REST API endpoint
+    server = "https://rest.ensembl.org"
+    
+    # Get transcripts in the region
+    ext = f"/overlap/region/human/{chromosome}:{start-margin}-{end+margin}?"
+    params = {
+        "feature": "transcript",
+        "content-type": "application/json"
+    }
+    
+    try:
+        r = requests.get(server + ext, params=params)
+        r.raise_for_status()  # Raise exception for bad status codes
+        transcripts = r.json()
+        
+        if not transcripts:
+            print(f"No transcripts found in region chr{chromosome}:{start-margin}-{end+margin}")
+            return
+            
+        print(f"Found {len(transcripts)} transcripts in region. Checking for sequence matches...\n")
+        
+        # For each transcript, get sequence and check for matches
+        for transcript in transcripts:
+            transcript_id = transcript.get('transcript_id', transcript.get('id', 'Unknown ID'))
+            
+            # Get transcript sequence
+            ext = f"/sequence/id/{transcript_id}?"
+            params = {
+                "content-type": "application/json",
+                "type": "cdna"
+            }
+            
+            r = requests.get(server + ext, params=params)
+            r.raise_for_status()
+            transcript_seq = r.json().get('seq', '')
+            
+            # Check for sequence match
+            if sequence in transcript_seq:
+                print(f"Match found in transcript: {transcript_id}")
+                # Using .get() method with default values to avoid KeyError
+                print(f"Gene name: {transcript.get('external_name', 'Unknown')}")
+                print(f"Gene ID: {transcript.get('parent', 'Unknown')}")
+                print(f"Transcript biotype: {transcript.get('biotype', 'Unknown')}")
+                print(f"Transcript position: chr{chromosome}:{transcript.get('start', 'Unknown')}-{transcript.get('end', 'Unknown')}")
+                print("-----")
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Error accessing Ensembl API: {e}")
+        return
+    except json.JSONDecodeError as e:
+        print(f"Error parsing API response: {e}")
+        return
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return
+
+def search_ensembl_region2(sequence, chromosome, start, end, margin=5000):
+    """
+    Search for sequence matches in Ensembl GRCh38 transcripts within specified region
+    
+    Args:
+        sequence (str): Query sequence
+        chromosome (str): Chromosome number
+        start (int): Start position
+        end (int): End position
+        margin (int): Additional base pairs to search on each side
+    """
+    # Ensembl GRCh38 REST API endpoint
+    server = "https://grch37.rest.ensembl.org" if use_grch37 else "https://rest.ensembl.org"
+    
+    # Get transcripts in the region
+    ext = f"/overlap/region/human/{chromosome}:{start-margin}-{end+margin}?"
+    params = {
+        "feature": "transcript",
+        "content-type": "application/json",
+        "assembly": "GRCh38.14"  # Explicitly specify GRCh38
+    }
+    
+    try:
+        r = requests.get(server + ext, params=params)
+        r.raise_for_status()
+        transcripts = r.json()
+        
+        if not transcripts:
+            print(f"No transcripts found in region chr{chromosome}:{start-margin}-{end+margin} (GRCh38)")
+            return
+            
+        print(f"Found {len(transcripts)} transcripts in GRCh38 region. Checking for sequence matches...\n")
+        
+        # For each transcript, get sequence and check for matches
+        for transcript in transcripts:
+            transcript_id = transcript.get('transcript_id', transcript.get('id', 'Unknown ID'))
+            
+            # Get transcript sequence
+            ext = f"/sequence/id/{transcript_id}?"
+            params = {
+                "content-type": "application/json",
+                "type": "cdna"
+            }
+            
+            r = requests.get(server + ext, params=params)
+            r.raise_for_status()
+            transcript_seq = r.json().get('seq', '')
+            
+            # Check for sequence match (both forward and reverse complement)
+            rev_comp = str(Seq(sequence).reverse_complement())
+            if sequence in transcript_seq or rev_comp in transcript_seq:
+                print(f"Match found in transcript: {transcript_id}")
+                print(f"Gene name: {transcript.get('external_name', 'Unknown')}")
+                print(f"Gene ID: {transcript.get('parent', 'Unknown')}")
+                print(f"Transcript biotype: {transcript.get('biotype', 'Unknown')}")
+                print(f"Transcript position (GRCh38): chr{chromosome}:{transcript.get('start', 'Unknown')}-{transcript.get('end', 'Unknown')}")
+                print(f"Strand: {'+' if transcript.get('strand', 0) > 0 else '-'}")
+                print("-----")
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Error accessing Ensembl API: {e}")
+        return
+    except json.JSONDecodeError as e:
+        print(f"Error parsing API response: {e}")
+        return
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return
 
 # ##########################################################################################################################################################################################################
 
